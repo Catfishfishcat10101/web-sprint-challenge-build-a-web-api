@@ -1,18 +1,26 @@
 const express = require('express');
 const server = express();
-const projectsRouter = require('./projects/projects-router');
-const actionsRouter = require('./actions/actions-router');
 
-server.use(express.json())
+const projectsRouter = require('./projects/projects-router');
+const actionsRouter = require('./actions/actions-router')
+
+server.use(express.json());
 
 server.use('/api/projects', projectsRouter);
-server.use('/api/actions', actionsRouter);
+server.use('/api/actions', actionsRouter)
 
-server.use('/api/hello', (req, res)  => {
+server.get('/hello', (req, res) =>{
+    res.json('hiya guys!!')
+})
+
+
+server.use('*', (req, res)=>{ //eslint-disable-line
     res.status(404).json({
-        message: 'i am found but not found'
+        message: `we can't find ${req.method} on ${req.baseUrl}, sorry bro!`
+
     })
 })
+
 
 // Configure your server here
 // Build your actions router in /api/actions/actions-router.js

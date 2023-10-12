@@ -1,61 +1,69 @@
+// Write your "projects" router here!
 const express = require('express');
-const {
-    validateProjectId,
-    validateProject,
-} = require('./projects-middleware');
-const Projects = require('./projects-model');
-const router = express.Router();
+const router = express.Router()
+const Projects = require('./projects-model')
+const { checkId, checkPost } = require('./projects-middleware')
 
-router.get('/', (req, res, next) => {
-   Projects.get()
-    .then(projects => {
+router.get('/', async(req, res,next) =>{
+    try{
+        const projects = await Projects.get()
         res.json(projects)
+    }catch(err){
+        next(err)
+    }
+})
+
+router.get('/:id', [checkId], (req, res) =>{
+    res.json(req.project)
+})
+
+router.post('/', [checkPost],(req, res, next) =>{
+Projects.insert(req.body)
+.then(newProject =>{
+    res.status(201).json(newProject)
+})
+.catch(next)
+})
+
+router.put('/:id', [checkId, checkPost], (req, res, next)=> {
+    Projects.update(req.params.id, req.body)
+    .then(()=> {
+        return Projects.get(req.params.id)
+    })
+    .then(project => {
+        res.json(project)
     })
     .catch(next)
 })
 
-router.get('/:id', validateProjectId, (req, res) => {
-    res.json(req.project)
+router.delete('/:id',[checkId],async (req, res, next) =>{
+    try{
+        
+        await Projects.remove(req.params.id)
+        res.json({message: 'project deleted'})
+    }catch(err){
+        next(err)
+    }
 })
 
-router.post('/', validateProject, (req, res, next) => {
-    Projects.insert({ name: req.body.name, description: req.body.description, completed: req.body.completed })
-        .then(newProject => {
-            res.status(201).json(newProject)
-        })
-        .catch(next)
+router.get('/:id/actions', checkId, async(req, res,next) =>{
+    try{
+        const projActions = await Projects.getProjectActions(req.params.id)
+        res.json(projActions)
+    }catch(err){
+        next(err)
+    }
 })
 
-router.put('/:id', validateProjectId, validateProject, (req, res, next) => {
-    Projects.update(req.params.id, { name: req.body.name, description: req.body.description, completed: req.body.completed })
-        .then(updatedProject => {
-            res.status(200).json(updatedProject)
-        })
-        .catch(next)
-})
+router.use((err, req, res, next) =>{
+    res.status(req.status || 500).json({
+        message: req.message
 
-router.delete('/:id', validateProjectId, (req, res, next) => {
-    Projects.remove(req.params.id)
-        .then(deletedProject => {
-            res.status(200).json(deletedProject)
-        })
-        .catch(next)
-})
-
-router.get('/:id/actions', validateProjectId, (req, res, next) => {
-    Projects.getProjectActions(req.params.id)
-        .then(projectActions => {
-            res.status(200).json(projectActions)
-        })
-        .catch(next)
-})
-
-router.use((err, req, res) => {
-    res.status(err.status || 500).json({
-        customMessage: 'something didnt work in the router',
-        message: err.message,
-        stack: err.stack,
     })
 })
+
+
+
+
 
 module.exports = router;

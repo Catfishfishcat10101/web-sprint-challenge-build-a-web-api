@@ -1,88 +1,58 @@
-const express = require('express');
-const Actions = require('./actions-model');
+// Write your "actions" router here!
+const express = require("express");
+const Actions = require("./actions-model");
 const router = express.Router();
-const {
-    validateActionsId,
-} = require('./actions-middlware');
+const { validateActionId, validateAction } = require("./actions-middlware");
 
-// GET /api/actions
-router.get('/', async (req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
     const actions = await Actions.get();
-    res.json(actions);
-  } catch (error) {
-    next(error);
+    res.status(200).json(actions);
+  } catch (err) {
+    next(err);
   }
 });
 
-// GET /api/actions/:id
-router.get('/:id', validateActionsId, (req, res) => {
-  res.json(req.actions);
-});
-
-// POST /api/actions
-router.post('/', async (req, res, next) => {
-  const { project_id, description, notes, completed } = req.body;
-  if (!project_id || !description || !notes || typeof completed !== 'boolean') {
-    return res.status(400).json({ error: 'Missing or invalid request body fields' });
-  }
-
+router.get("/:id", validateActionId, async (req, res, next) => {
   try {
-    const newAction = await Actions.insert({
-      project_id,
-      description,
-      completed,
-      notes,
-    });
+    const action = await Actions.get(req.params.id);
+    res.status(200).json(action);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/", validateAction, async (req, res, next) => {
+  try {
+    const newAction = await Actions.insert(req.body);
     res.status(201).json(newAction);
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 });
 
-// PUT /api/actions/:id
-router.put('/:id', async (req, res, next) => {
-  const { id } = req.params;
-  const { project_id, description, notes, completed } = req.body;
-
-  if (!project_id || !description || !notes || typeof completed !== 'boolean') {
-    return res.status(400).json({ error: 'Missing notes, description, completed, or project_id' });
-  }
-
+router.put("/:id", validateActionId, validateAction, async (req, res, next) => {
   try {
-    const updatedAction = await Actions.update(id, {
-      project_id,
-      description,
-      notes,
-      completed,
-    });
-
-    if (updatedAction) {
-      res.status(200).json(updatedAction);
-    } else {
-      res.status(404).json({ message: 'Action not found' });
-    }
-  } catch (error) {
-    next(error);
+    const updatedAction = await Actions.update(req.params.id, req.body);
+    res.status(200).json(updatedAction);
+  } catch (err) {
+    next(err);
   }
 });
 
-// DELETE /api/actions/:id
-router.delete('/:id', async (req, res, next) => {
+router.delete("/:id", validateActionId, async (req, res, next) => {
   try {
     await Actions.remove(req.params.id);
-    res.json(req.actions);
-  } catch (error) {
-    next(error);
+    res.status(200).json(req.action);
+  } catch (err) {
+    next(err);
   }
 });
 
-// Error handling middleware
 router.use((err, req, res, next) => {
   res.status(err.status || 500).json({
-    customMessage: 'Error: <INSIDE-ACTIONS>',
     message: err.message,
-    stack: err.stack,
+    customMessage: "Something bad inside the projects router!",
   });
 });
 
